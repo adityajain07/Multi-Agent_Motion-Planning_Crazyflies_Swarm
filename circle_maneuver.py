@@ -2,7 +2,7 @@ from pycrazyswarm import Crazyswarm
 import math
 import sys
 
-TAKEOFF_DURATION = 2.5
+TAKEOFF_DURATION = 1.0
 LAND_DURATION = 2.5
 
 # Wait time between each circle to launch
@@ -99,10 +99,12 @@ def main():
 
     # Start maneuver to move each drone in a circle
     initial_time = 0
+    loop_count = 1
     while (initial_time<FLIGHT_DURATION):
         for cf in crazyflies:
             if cf.id in fly_list:
-                # Move middle circle in clockwise direction
+
+                # Move middle circle in anti-clockwise direction
                 if cf.id in middle_circle:
                     radius = math.sqrt(cf.position()[0]**2 + cf.position()[1]**2)
                     current_angle = round (math.atan2(cf.position()[1],cf.position()[0]),2)
@@ -113,8 +115,8 @@ def main():
                     cf.goTo([new_x, new_y, new_z], 0, MOVE_TIME)
                     # TODO - Add a check to make sure the drone has reached the new position
 
-                # Move bottom circle in anti-clockwise direction
-                if cf.id in bottom_circle:
+                # Move bottom circle in clockwise direction
+                elif cf.id in bottom_circle:
                     radius = math.sqrt(cf.position()[0]**2 + cf.position()[1]**2)
                     current_angle = round (math.atan2(cf.position()[1],cf.position()[0]),2)
                     new_angle = round(current_angle - ANGLE_INCREMENT,2)
@@ -124,10 +126,12 @@ def main():
                     cf.goTo([new_x, new_y, new_z], 0, MOVE_TIME)
                     # TODO - Add a check to make sure the drone has reached the new position
                 
-                # Just changing the yaw of first drone
+                # Move the top drone on its own axis
                 else:
-                    pass
-            
+                    new_yaw = loop_count*ANGLE_INCREMENT # THIS MIGHT NEED A FIX, LIKE A MODULO WITH 2PI 
+                    cf.goTo(cf.position(), new_yaw, MOVE_TIME)
+                    loop_count += 1
+
         timeHelper.sleep(0.5)
         # Increment timer to be MOVE TIME + SLEEP TIME (0.5)
         initial_time += (0.5+MOVE_TIME)
