@@ -72,11 +72,11 @@ bottom_circle_height = 1
 
 def main():
     swarm = Crazyswarm()
-    craziflies = swarm.allcfs.crazyflies
+    crazyflies = swarm.allcfs.crazyflies
     timeHelper = swarm.timeHelper
     
     # Set group mask for each circle
-    for cf in craziflies:
+    for cf in crazyflies:
         if cf.id in top_circle:
             cf.setGroupMask(1)
         elif cf.id in middle_circle:
@@ -85,7 +85,7 @@ def main():
             cf.setGroupMask(4)
 
     # Take off each circle in order and wait for each to finish
-    for cf in craziflies:
+    for cf in crazyflies:
         if cf.id in fly_list:
             cf.takeoff(targetHeight=top_circle_height, duration=TAKEOFF_DURATION, groupMask=1)
             timeHelper.sleep(TAKEOFF_DURATION)
@@ -100,10 +100,10 @@ def main():
     # Start maneuver to move each drone in a circle
     initial_time = 0
     while (initial_time<FLIGHT_DURATION):
-        for cf in craziflies:
+        for cf in crazyflies:
             if cf.id in fly_list:
-                # Don't move the first drone
-                if cf.id != 1:
+                # Move middle circle in clockwise direction
+                if cf.id in middle_circle:
                     radius = math.sqrt(cf.position()[0]**2 + cf.position()[1]**2)
                     current_angle = round (math.atan2(cf.position()[1],cf.position()[0]),2)
                     new_angle = round(current_angle + ANGLE_INCREMENT,2)
@@ -112,13 +112,28 @@ def main():
                     new_z = round(cf.position()[2],2)
                     cf.goTo([new_x, new_y, new_z], 0, MOVE_TIME)
                     # TODO - Add a check to make sure the drone has reached the new position
+
+                # Move bottom circle in anti-clockwise direction
+                if cf.id in bottom_circle:
+                    radius = math.sqrt(cf.position()[0]**2 + cf.position()[1]**2)
+                    current_angle = round (math.atan2(cf.position()[1],cf.position()[0]),2)
+                    new_angle = round(current_angle - ANGLE_INCREMENT,2)
+                    new_x = round(radius*math.cos(new_angle),2)
+                    new_y = round(radius*math.sin(new_angle),2)
+                    new_z = round(cf.position()[2],2)
+                    cf.goTo([new_x, new_y, new_z], 0, MOVE_TIME)
+                    # TODO - Add a check to make sure the drone has reached the new position
+                
+                # Just changing the yaw of first drone
+                else:
+                    pass
             
         timeHelper.sleep(0.5)
         # Increment timer to be MOVE TIME + SLEEP TIME (0.5)
         initial_time += (0.5+MOVE_TIME)
         
     # After the maneuver is done, land each circle in order and wait for each to finish
-    for cf in craziflies:
+    for cf in crazyflies:
         if cf.id in fly_list:
             cf.land(targetHeight=0.04, duration=LAND_DURATION)
     timeHelper.sleep(5)
