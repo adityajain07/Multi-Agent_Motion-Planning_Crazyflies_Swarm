@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 
 from pycrazyswarm import *
 import rospy
+import time 
 from geometry_msgs.msg import TransformStamped
 
 class CrazyflieObstacleAvoidance(object):
@@ -19,10 +19,22 @@ class CrazyflieObstacleAvoidance(object):
         self.obs_y = 0.0
         self.obs_z = 0.0
 
+        # variables for crazyflies
+        self.swarm = Crazyswarm()
+        self.allcfs = self.swarm.allcfs
+        self.takeoff_height = 1.0
+        self.takeoff_duration = 3.5
+        self.takeoff_crazyflies()
+        self.timeHelper = self.swarm.timeHelper
+
         # command the crazyflie at the below frequency
-        self.desired_cmd_frequency = 5
+        print("Press s button to start object tracking")
+        self.swarm.input.waitUntilButtonPressed()
+        self.desired_cmd_frequency = 0.2
+
         self.command_crazyflies()
         # rospy.Timer(rospy.Duration(1 / self.desired_cmd_frequency), self.command_crazyflies)
+
 
     def update_obstacle_position(self, vicon_data):
         """updates the obstacle's position globally in the function"""
@@ -30,25 +42,26 @@ class CrazyflieObstacleAvoidance(object):
         self.obs_y = vicon_data.transform.translation.y
         self.obs_z = vicon_data.transform.translation.z
 
-    def command_crazyflies(self):
+    def takeoff_crazyflies(self):
+        """taking off crazyflies"""
+        for cf in self.allcfs.crazyflies:
+            cf.takeoff(targetHeight = self.takeoff_height, duration = self.takeoff_duration)
+            cf.setGroupMask(1)
+
+
+    def command_crazyflies(self, event=None):
         """main function for controlling the crazyflies"""
-        swarm = Crazyswarm()
-        timeHelper = swarm.timeHelper
-        allcfs = swarm.allcfs
-
-        for cf in allcfs.crazyflies:
-            cf.takeoff(targetHeight = 1.0, duration = 3.5)
-
-        print("X: ", self.obs_x)
-        print("Y: ", self.obs_y)
-        print("Z: ", self.obs_z)
-        print("Press l to land")
-        swarm.input.waitUntilButtonPressed()
-        for cf in allcfs.crazyflies:
-            cf.land(targetHeight = 0.04, duration = 3.5)
-
-    
+        while (1):
+            
+            for cf in self.allcfs.crazyflies:
+                print(f'Drone {cf.id}s X position is: {cf.position()[0]}, Y position is: {cf.position()[1]}, Z position is: {cf.position()[2]}')
+                print(f'Objects X position is: {self.obs_x}, Y position is: {self.obs_y}, Z position is: {self.obs_z}')
+                cf.cmdPosition([cf.position()[0], cf.position()[1], self.obs_z])
+                self.timeHelper.sleep(0.1)
+            
+        
 
 if __name__ == "__main__":
+    rospy.init_node('command_crazyflies')
     CrazyflieObstacleAvoidance()
     rospy.spin()
