@@ -2,8 +2,8 @@
 from __future__ import print_function
 
 from pycrazyswarm import *
+import sys
 import rospy
-import time 
 from geometry_msgs.msg import TransformStamped
 
 class CrazyflieObstacleAvoidance(object):
@@ -26,6 +26,7 @@ class CrazyflieObstacleAvoidance(object):
         self.takeoff_duration = 3.5
         self.takeoff_crazyflies()
         self.timeHelper = self.swarm.timeHelper
+        self.timePassed = 0
 
         # command the crazyflie at the below frequency
         print("Press s button to start object tracking")
@@ -47,21 +48,27 @@ class CrazyflieObstacleAvoidance(object):
         for cf in self.allcfs.crazyflies:
             cf.takeoff(targetHeight = self.takeoff_height, duration = self.takeoff_duration)
             cf.setGroupMask(1)
+    
+    def land_crazyflies(self):
+        """Landing crazyflies"""
+        for cf in self.allcfs.crazyflies:
+            cf.land(targetHeight = 0.04, duration = 5.0)
 
 
     def command_crazyflies(self, event=None):
         """main function for controlling the crazyflies"""
-        while (1):
-            
+
+        while (self.timePassed<15):
             for cf in self.allcfs.crazyflies:
                 print(f'Drone {cf.id}s X position is: {cf.position()[0]}, Y position is: {cf.position()[1]}, Z position is: {cf.position()[2]}')
                 print(f'Objects X position is: {self.obs_x}, Y position is: {self.obs_y}, Z position is: {self.obs_z}')
                 cf.cmdPosition([cf.position()[0], cf.position()[1], self.obs_z])
                 self.timeHelper.sleep(0.1)
-            
-        
+            self.timePassed += 0.1
+        self.land_crazyflies()
+        sys.exit()
 
 if __name__ == "__main__":
-    rospy.init_node('command_crazyflies')
+    # rospy.init_node('command_crazyflies')
     CrazyflieObstacleAvoidance()
     rospy.spin()
