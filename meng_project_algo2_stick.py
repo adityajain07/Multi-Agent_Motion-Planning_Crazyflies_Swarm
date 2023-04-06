@@ -33,6 +33,12 @@ class CrazyflieObstacleAvoidance(object):
         # threshold change to trigger command to cf
         self.threshold = 0.01
 
+        # total flying time
+        self.flying_time = 20
+
+        # desired cf velocity
+        self.go_to_velocity = 0.05 # 5 cm/sec
+
         # variables for crazyflies
         self.swarm = Crazyswarm()
         self.allcfs = self.swarm.allcfs
@@ -43,7 +49,7 @@ class CrazyflieObstacleAvoidance(object):
         self.timePassed = 0
 
         self.odd_list = [1,3,5,7]
-        self.even_list = [2,4,6,91]
+        self.even_list = [2,4,6,8,91]
 
         # command the crazyflie at the below frequency
         print("Press s button to start object tracking")
@@ -78,54 +84,54 @@ class CrazyflieObstacleAvoidance(object):
             cf.land(targetHeight = 0.04, duration = 5.0)
 
 
+    def _calculate_offset_and_goto_duration(self, last_object_pos, current_object_pos):
+        """calculates and returns the offsets and goTo duratio"""
+        diff = current_object_pos - last_object_pos
+        euclidean_dist = np.linalg.norm(diff)
+
+        if euclidean_dist > self.threshold:
+            go_to_duration =  round(euclidean_dist/self.go_to_velocity, 1)
+            return diff, go_to_duration
+        else:    
+            return 0, 0
+
     def command_crazyflies(self, event=None):
         """main function for controlling the crazyflies"""
-        # last_object_position = np.array([self.cur_object_x , self.cur_object_y , self.cur_object_z])
+        last_left_glove_position  = np.array([self.cur_left_glove_x,self.cur_left_glove_y,self.cur_left_glove_z])
+        last_right_glove_position = np.array([self.cur_right_glove_x,self.cur_right_glove_y,self.cur_right_glove_z])
         start_time = time.time()
 
         # set group mask
         for cf in self.allcfs.crazyflies:
             if cf.id in self.even_list:
-                cf.setGroupMask(0)
+                cf.setGroupMask(2)
             else:
                 cf.setGroupMask(1)
         
-        while ((time.time()-start_time)<20):
-            # current_object_position  = np.array([self.cur_object_x , self.cur_object_y , self.cur_object_z])
-            # diff = current_object_position - last_object_position
-            self.allcfs.goTo([1, 1, 1],0, duration = 1.0, groupMask=0)
-            self.allcfs.goTo([-1, -1, 1],0, duration = 1.0, groupMask=1)
-            # diff_x = 0.0
-            # diff_y = 0.0
-            # diff_z = 0.0
-            # position_changed = False
-            # for cf in self.allcfs.crazyflies:
-            #     cf_x = cf.position()[0]; cf_y = cf.position()[1]; cf_z = cf.position()[2]; 
-            #     if (abs(diff[0])>self.threshold):
-            #         diff_x = diff[0]
-            #         last_object_position[0] = last_object_position[0] + diff[0]
-            #         position_changed = True
-            #     if (abs(diff[1])>self.threshold):
-            #         diff_y = diff[1]
-            #         last_object_position[1] = last_object_position[1] + diff[1]
-            #         position_changed = True
-            #     if (abs(diff[2])>self.threshold):
-            #         diff_z = diff[2]
-            #         last_object_position[2] = last_object_position[2] + diff[2]
-            #         position_changed = True
+        while ((time.time()-start_time)<self.flying_time):
 
-            #     if position_changed:
-            #         cf.goTo([cf_x+diff_x, cf_y+diff_y , cf_z+diff_z],0, duration = 1.0)
-                
-            #     print('Last Object Position:', last_object_position)
-            self.timeHelper.sleep(2)
-            # break
+            # left glove control
+            current_left_glove_position = np.array([self.cur_left_glove_x,self.cur_left_glove_y,self.cur_left_glove_z])
+            diff, go_to_duration_left = self._calculate_offset_and_goto_duration(last_left_glove_position, current_left_glove_position)
+            if go_to_duration_left:
+                self.allcfs.goTo([diff[0],diff[1],diff[2]],0, duration = go_to_duration_left, groupMask=1)
+                last_left_glove_position = current_left_glove_position
+
+            # right glove control
+            current_right_glove_position = np.array([self.cur_right_glove_x,self.cur_right_glove_y,self.cur_right_glove_z])
+            diff, go_to_duration_right = self._calculate_offset_and_goto_duration(last_right_glove_position, current_right_glove_position)
+            if go_to_duration_right:
+                self.allcfs.goTo([diff[0],diff[1],diff[2]],0, duration = go_to_duration_right, groupMask=2)
+                last_right_glove_position = current_right_glove_position
+
+            # self.timeHelper.sleep(max(go_to_duration_left, go_to_duration_right)+0.5)
+            self.timeHelper.sleep(1)
 
         self.land_crazyflies()
         sys.exit()
 
 if __name__ == "__main__":
-    rospy.init_node('command_crazyflies')
+    # rospy.init_node('command_crazyflies')
     CrazyflieObstacleAvoidance()
     rospy.spin()
 
