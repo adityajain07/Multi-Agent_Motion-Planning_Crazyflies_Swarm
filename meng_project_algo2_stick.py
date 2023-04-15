@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import TransformStamped
 import time
 
-class CrazyflieObstacleAvoidance(object):
+class CrazyflieObjectFollowing(object):
     """ROS interface for avoiding obstacles in real time for crazyflie swarm"""
 
     def __init__(self):
@@ -31,13 +31,13 @@ class CrazyflieObstacleAvoidance(object):
         self.cur_right_glove_z = 0.0
 
         # threshold change to trigger command to cf
-        self.threshold = 0.01
+        self.threshold = 0.2 # 20 cm
 
         # total flying time
-        self.flying_time = 20
+        self.flying_time = 30
 
         # desired cf velocity
-        self.go_to_velocity = 0.05 # 5 cm/sec
+        self.go_to_velocity = 0.1 # 10 cm/sec
 
         # variables for crazyflies
         self.swarm = Crazyswarm()
@@ -66,6 +66,8 @@ class CrazyflieObstacleAvoidance(object):
         self.cur_left_glove_y = vicon_data.transform.translation.y
         self.cur_left_glove_z = vicon_data.transform.translation.z
 
+        # print(f'Left glove z position {self.cur_left_glove_z }')
+
     def update_right_glove_position(self, vicon_data):
         """updates the right glove's position globally in the class"""
         self.cur_right_glove_x = vicon_data.transform.translation.x
@@ -80,12 +82,14 @@ class CrazyflieObstacleAvoidance(object):
     
     def land_crazyflies(self):
         """Landing crazyflies"""
+        print('Land command initiated.')
         for cf in self.allcfs.crazyflies:
             cf.land(targetHeight = 0.04, duration = 5.0)
 
 
     def _calculate_offset_and_goto_duration(self, last_object_pos, current_object_pos):
-        """calculates and returns the offsets and goTo duratio"""
+        """calculates and returns the offsets and goTo duration"""
+        
         diff = current_object_pos - last_object_pos
         euclidean_dist = np.linalg.norm(diff)
 
@@ -109,7 +113,6 @@ class CrazyflieObstacleAvoidance(object):
                 cf.setGroupMask(1)
         
         while ((time.time()-start_time)<self.flying_time):
-
             # left glove control
             current_left_glove_position = np.array([self.cur_left_glove_x,self.cur_left_glove_y,self.cur_left_glove_z])
             diff, go_to_duration_left = self._calculate_offset_and_goto_duration(last_left_glove_position, current_left_glove_position)
@@ -132,7 +135,7 @@ class CrazyflieObstacleAvoidance(object):
 
 if __name__ == "__main__":
     # rospy.init_node('command_crazyflies')
-    CrazyflieObstacleAvoidance()
+    CrazyflieObjectFollowing()
     rospy.spin()
 
 
