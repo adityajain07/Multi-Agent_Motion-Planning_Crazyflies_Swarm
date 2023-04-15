@@ -34,7 +34,7 @@ class CrazyflieObjectFollowing(object):
         self.threshold = 0.2 # 20 cm
 
         # total flying time
-        self.flying_time = 30
+        self.flying_time = 60
 
         # desired cf velocity
         self.go_to_velocity = 0.1 # 10 cm/sec
@@ -42,23 +42,33 @@ class CrazyflieObjectFollowing(object):
         # variables for crazyflies
         self.swarm = Crazyswarm()
         self.allcfs = self.swarm.allcfs
-        self.takeoff_height = 1.0
         self.takeoff_duration = 3.5
-        self.takeoff_crazyflies()
         self.timeHelper = self.swarm.timeHelper
         self.timePassed = 0
 
-        self.odd_list = [1,3,5,7]
+        self.odd_list = [1,3,5,7,9]
         self.even_list = [2,4,6,8,91]
+
+        # set height and take off duration
+        self.odd_height = 1.0
+        self.even_height = 1.5
+        self.odd_takeoff_duration = 3.5
+        self.even_takeoff_duration = 5.0
+
+        self.set_group_mask()
+        self.takeoff_crazyflies()
 
         # command the crazyflie at the below frequency
         print("Press s button to start object tracking")
         self.swarm.input.waitUntilButtonPressed()
-        self.desired_cmd_frequency = 0.2
-
         self.command_crazyflies()
-        # rospy.Timer(rospy.Duration(1 / self.desired_cmd_frequency), self.command_crazyflies)
 
+    def set_group_mask(self):
+        for cf in self.allcfs.crazyflies:
+            if cf.id in self.odd_list:
+                cf.setGroupMask(1)
+            else:
+                cf.setGroupMask(2)
 
     def update_left_glove_position(self, vicon_data):
         """updates the left glove's position globally in the class"""
@@ -76,9 +86,8 @@ class CrazyflieObjectFollowing(object):
 
     def takeoff_crazyflies(self):
         """taking off crazyflies"""
-        for cf in self.allcfs.crazyflies:
-            cf.takeoff(targetHeight = self.takeoff_height, duration = self.takeoff_duration)
-            cf.setGroupMask(1)
+        self.allcfs.takeoff(targetHeight = self.odd_height, duration = self.odd_takeoff_duration, groupMask=1)
+        self.allcfs.takeoff(targetHeight = self.even_height, duration = self.even_takeoff_duration, groupMask=2)
     
     def land_crazyflies(self):
         """Landing crazyflies"""
@@ -127,7 +136,6 @@ class CrazyflieObjectFollowing(object):
                 self.allcfs.goTo([diff[0],diff[1],diff[2]],0, duration = go_to_duration_right, groupMask=2)
                 last_right_glove_position = current_right_glove_position
 
-            # self.timeHelper.sleep(max(go_to_duration_left, go_to_duration_right)+0.5)
             self.timeHelper.sleep(1)
 
         self.land_crazyflies()
