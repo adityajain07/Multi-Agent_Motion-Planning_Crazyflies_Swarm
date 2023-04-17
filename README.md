@@ -5,5 +5,7 @@ Supervisor: Prof. Steven L. Waslander
 
 This repository contains code for a multi-agent motion planning project using Crazyflie platform done as part of an MEng project at University of Toronto. The `configuration` folder contains the configuration files and `motion_planning` folder contains code for motion planning.
 
+Video demonstration: 
 
-For more details, please see the report.
+
+For more details, please see the [video demonstration](https://youtu.be/kjKUiguxwx4) and project report.
